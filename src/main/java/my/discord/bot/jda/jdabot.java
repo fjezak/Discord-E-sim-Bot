@@ -22,7 +22,7 @@ public class jdabot extends ListenerAdapter
 
             throws LoginException, RateLimitedException, InterruptedException
     {
-        JDA jda = new JDABuilder(AccountType.BOT).setToken("***REMOVED***").buildBlocking();
+        JDA jda = new JDABuilder(AccountType.BOT).setToken("").buildBlocking();
         jda.addEventListener(new jdabot());
     }
 
