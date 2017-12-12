@@ -1,6 +1,8 @@
 package my.discord.bot.jda;
 
-
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
+import esim.AppSettings;
 import esim.ESimClient;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
@@ -10,14 +12,18 @@ import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
-
 import javax.security.auth.login.LoginException;
+import java.io.FileReader;
 import java.io.IOException;
 
 public class Jdabot extends ListenerAdapter {
+    public static AppSettings APP_SETTINGS;
     public static ESimClient eSimClient;
     public static void main(String[] args) throws LoginException, RateLimitedException, InterruptedException, IOException {
-        JDA jda = new JDABuilder(AccountType.BOT).setToken("***REMOVED***").buildBlocking();
+        JsonReader reader = new JsonReader(new FileReader("settings.json"));
+        Gson gson = new Gson();
+        APP_SETTINGS = gson.fromJson(reader, AppSettings.class);
+        JDA jda = new JDABuilder(AccountType.BOT).setToken(APP_SETTINGS.botToken).buildBlocking();
         eSimClient = new ESimClient();
         jda.addEventListener(new Jdabot());
     }
@@ -34,7 +40,7 @@ public class Jdabot extends ListenerAdapter {
                     event.getMessage().getContent());
 
             String message=event.getMessage().getContent();
-            String name =event.getMember().getEffectiveName();
+            String name = event.getMember().getEffectiveName();
             MessageChannel channel = event.getChannel();    //This is the MessageChannel that the message was sent to.
 
             if(message.charAt(0) == '.') {

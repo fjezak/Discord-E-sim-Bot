@@ -76,6 +76,7 @@ public class ESimCitizen {
     int xp;
     int damageToday;
     String status;
+    String error;
 
     ESimCitizen(
             double eqCriticalHit,
@@ -105,7 +106,8 @@ public class ESimCitizen {
             boolean organization,
             int xp,
             int damageToday,
-            String status
+            String status,
+            String error
     ) {
         this.eqCriticalHit = eqCriticalHit;
         this.strength = strength;
@@ -135,9 +137,11 @@ public class ESimCitizen {
         this.xp = xp;
         this.damageToday = damageToday;
         this.status = status;
+        this.error = error;
     }
 
     public String printLicz(double amount, int weaponQuality) {
+        if(this.error != null) return null;
         double avoid = this.eqAvoidDamage * 0.01;
         double crit = this.eqCriticalHit * 0.01;
         double miss = this.eqReduceMiss * 0.01;
@@ -161,23 +165,26 @@ public class ESimCitizen {
     }
 
     public String printLink(String server){
+        if(this.error != null) return null;
         String msg = this.login + ": https://" + server + ".e-sim.org/profile.html?id=" + this.id;
         return msg;
     }
 
     public String printDmg() {
-
+        if(this.error != null) return null;
         String msg = this.login + ": obrażenia zadane dziś: " + ESimCitizen.formatter.format(this.damageToday) +
                 ", obrażenia całkowite: " + ESimCitizen.formatter.format(this.totalDamage - this.damageToday);
         return msg;
     }
 
     public String printToday() {
+        if(this.error != null) return null;
         String msg = this.login + ": dzisiejsze obrażenia: " + ESimCitizen.formatter.format(this.damageToday);
         return msg;
     }
 
     public String printEq(){
+        if(this.error != null) return null;
         String msg = String.format(Locale.ROOT,
                 "%s: crit: %.2f%%, miss: %.2f%%, avoid: %.2f%%, max dmg: %.2f%%, dmg: %.2f%%,",
                 this.login, this.eqCriticalHit, this.eqReduceMiss, this.eqAvoidDamage, this.eqIncreaseMaxDamage, this.eqIncreaseDamage);
