@@ -5,20 +5,27 @@ import com.google.gson.stream.JsonReader;
 import esim.AppSettings;
 import esim.ESimClient;
 import net.dv8tion.jda.core.AccountType;
+
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
+
 import net.dv8tion.jda.core.entities.ChannelType;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
+
 import javax.security.auth.login.LoginException;
+
+import java.awt.*;
 import java.io.FileReader;
 import java.io.IOException;
 
 public class Jdabot extends ListenerAdapter {
     public static AppSettings APP_SETTINGS;
     public static ESimClient eSimClient;
+
     public static void main(String[] args) throws LoginException, RateLimitedException, InterruptedException, IOException {
         JsonReader reader = new JsonReader(new FileReader("settings.json"));
         Gson gson = new Gson();
@@ -33,19 +40,31 @@ public class Jdabot extends ListenerAdapter {
         if (event.isFromType(ChannelType.PRIVATE)) {
             System.out.printf("[PM] %s: %s\n", event.getAuthor().getName(),
                     event.getMessage().getContent());
-        }
-        else {
+        } else {
             System.out.printf("[%s][%s] %s: %s\n", event.getGuild().getName(),
                     event.getTextChannel().getName(), event.getMember().getEffectiveName(),
                     event.getMessage().getContent());
 
-            String message=event.getMessage().getContent();
+
+            String message = event.getMessage().getContent();
             String name = event.getMember().getEffectiveName();
             MessageChannel channel = event.getChannel();    //This is the MessageChannel that the message was sent to.
 
-            if(message.charAt(0) == '.') {
+            if (message.charAt(0) == '.') {
                 try {
-                    channel.sendMessage(eSimClient.processCommands(message, name)).queue();
+                    // EmbedBuilder eb = new EmbedBuilder();
+
+                    String str = eSimClient.processCommands(message, name);
+                    EmbedBuilder eb = new EmbedBuilder();
+                    eb.setColor(Color.red);
+                    // eb.setTitle("ESIM BOT ELOELO!!!");
+
+                    eb.setDescription(str);
+
+
+                    channel.sendMessage(eb.build()).queue();
+                    // channel.sendMessage(eSimClient.processCommands(message, name)).queue();
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

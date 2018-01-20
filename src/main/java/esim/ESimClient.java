@@ -100,7 +100,7 @@ public class ESimClient {
 
         switch(cmd) {
             case ".help":
-                msg = "Dostępne komendy: .licz, .link, .dmg, .today, .eq, .spec => Uwagi do DR4KA (e-sim).";
+                msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
                 break;
             case ".licz":
                 msg = this.getCitizenInfo(nick).printLicz(amount,weaponQuality);
@@ -128,7 +128,7 @@ public class ESimClient {
                 msg = this.getGlobalMilitaryEvents();
                 break;
             default:
-                msg = "Nieobsługiwana komenda. Aby sprawdzić dostępne komendy wpisz .help";
+                msg = "Nieobsługiwana komenda. Aby sprawdzić dostępne komendy wpisz **.help**";
                 break;
         }
         return msg != null ? msg : nick + "? Nie znam typa...";
