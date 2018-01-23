@@ -100,6 +100,9 @@ public class ESimClient {
 
         switch(cmd) {
             case ".help":
+                msg = "`Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*`";
+                break;
+            case ".format":
                 msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
                 break;
             case ".licz":

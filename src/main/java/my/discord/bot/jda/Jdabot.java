@@ -50,20 +50,18 @@ public class Jdabot extends ListenerAdapter {
             String name = event.getMember().getEffectiveName();
             MessageChannel channel = event.getChannel();    //This is the MessageChannel that the message was sent to.
 
-            if (message.charAt(0) == '.') {
+            if (!message.isEmpty() &&  message.charAt(0) == '.') {
                 try {
                     // EmbedBuilder eb = new EmbedBuilder();
 
                     String str = eSimClient.processCommands(message, name);
                     EmbedBuilder eb = new EmbedBuilder();
                     eb.setColor(Color.red);
-                    // eb.setTitle("ESIM BOT ELOELO!!!");
+                    eb.setTitle("ESIM BOT ELOELO!!!");
 
                     eb.setDescription(str);
-
-
                     channel.sendMessage(eb.build()).queue();
-                    // channel.sendMessage(eSimClient.processCommands(message, name)).queue();
+                   //channel.sendMessage(eSimClient.processCommands(message, name)).queue();
 
                 } catch (IOException e) {
                     e.printStackTrace();
