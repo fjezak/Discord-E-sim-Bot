@@ -1,10 +1,13 @@
 package esim;
 
+import net.dv8tion.jda.core.entities.MessageChannel;
 import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -17,13 +20,16 @@ import java.util.regex.Pattern;
 import static my.discord.bot.jda.Jdabot.APP_SETTINGS;
 
 public class ESimClient {
-    public static final List<String> SERVERS = Arrays.asList("primera", "secura", "suna", "suburbia");
+    private static final List<String> SERVERS = Arrays.asList("primera", "secura", "suna", "suburbia");
     private IESim esim;
+    private HostSelectionInterceptor interceptor;
 
     public ESimClient() throws IOException {
+        interceptor = new HostSelectionInterceptor();
         CookieJar cookieJar = new MyCookieJar();
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .cookieJar(cookieJar)
+                .addInterceptor(interceptor)
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
@@ -36,27 +42,113 @@ public class ESimClient {
         this.signIn();
     }
 
-    public String processCommands(String text, String chanNick) throws IOException {
+    public void processCommands(String text, String chanNick, MessageChannel channel) throws IOException {
         String cmd;
         Matcher m = Pattern.compile("(^\\.[a-z]{1,10})").matcher(text);
         if (m.find()) {
             text = text.replaceFirst(m.group(), "");
             cmd = m.group();
         } else {
-            return "Coś poszło nie tak.";
+            channel.sendMessage("Coś poszło nie tak.").queue();
+            return;
         }
 
         String msg;
+        switch(cmd) {
+            case ".help":
+                msg = "`Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*`";
+                break;
+            case ".format":
+                msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
+                break;
+            case ".licz":
+            case ".link":
+            case ".dmg":
+            case ".today":
+            case ".eq":
+                this.getCitizenInfo(cmd, text, chanNick, channel);
+                return;
+            case ".spec":
+                this.getBattleSpects(text, channel);
+                return;
+            case ".news":
+                this.getGlobalMilitaryEvents(channel);
+                return;
+            default:
+                msg = "Nieobsługiwana komenda. Aby sprawdzić dostępne komendy wpisz **.help**";
+        }
+        channel.sendMessage(msg).queue();
+    }
+
+    private void signIn() throws IOException {
+        Call<ResponseBody> call = esim.index();
+        call.execute();
+        RequestBody body = RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), "login="+ APP_SETTINGS.securaLogin +"&password="+ APP_SETTINGS.securaPassword +"&remember=true&facebookAdId=");
+        call = esim.login(body);
+        call.execute();
+        //System.out.println(call.execute().raw().request());
+    }
+
+    private void getBattleSpects(String text, MessageChannel channel) {
+        int battleId = 0;
+        Matcher m = Pattern.compile("\\d{3,}").matcher(text);
+        if (m.find()) {
+            battleId = Integer.parseInt(m.group());
+        }
+        if (battleId == 0) {
+            channel.sendMessage("Podano błedne ID bitwy.").queue();
+            return;
+        }
+        interceptor.setHost("secura");
+        Call<ResponseBody> call = esim.battle(battleId);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    channel.sendMessage(ESimClient.extractSpects(Jsoup.parse(response.body().string()))).queue();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable throwable) {
+                channel.sendMessage("Wystąpił błąd serwera.").queue();
+            }
+        });
+    }
+
+    private void getGlobalMilitaryEvents(MessageChannel channel) {
+        interceptor.setHost("secura");
+        Call<ResponseBody> call = esim.events();
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    channel.sendMessage(ESimClient.extractNews(Jsoup.parse(response.body().string()))).queue();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable throwable) {
+                channel.sendMessage("Wystąpił błąd serwera.").queue();
+            }
+        });
+    }
+
+    private void getCitizenInfo(String cmd, String text, String chanNick, MessageChannel channel) throws IOException {
+        Matcher m;
         String nick = chanNick;
         String server = "secura";
         double amount = 30;
         int weaponQuality = 1;
-        int battleId = 0;
 
-        switch(cmd) {
+        switch (cmd) {
             case ".licz":
                 if (!text.isEmpty()) {
-                    m = Pattern.compile(" \\d+[\\.,]?\\d*(?![^ ])").matcher(text);
+                    m = Pattern.compile(" \\d+[.,]?\\d*(?![^ ])").matcher(text);
                     if (m.find()) {
                         text = text.replaceFirst(m.group(), "");
                         amount = Double.parseDouble(m.group());
@@ -77,7 +169,7 @@ public class ESimClient {
                     if (m.find()) {
                         text = text.replaceFirst(m.group(), "");
                         for (String v : SERVERS) {
-                            if (v.matches(m.group())) {
+                            if (v.startsWith(m.group(1))) {
                                 server = v;
                                 break;
                             }
@@ -90,83 +182,47 @@ public class ESimClient {
                     }
                 }
                 break;
-            case ".spec":
-                m = Pattern.compile("\\d{3,}").matcher(text);
-                if (m.find()) {
-                    battleId = Integer.parseInt(m.group());
-                }
-                break;
         }
 
-        switch(cmd) {
-            case ".help":
-                msg = "`Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*`";
-                break;
-            case ".format":
-                msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
-                break;
-            case ".licz":
-                msg = this.getCitizenInfo(nick).printLicz(amount,weaponQuality);
-                break;
-            case ".link":
-                msg = this.getCitizenInfo(nick).printLink(server);
-                break;
-            case ".dmg":
-                msg = this.getCitizenInfo(nick).printDmg();
-                break;
-            case ".today":
-                msg = this.getCitizenInfo(nick).printToday();
-                break;
-            case ".eq":
-                msg = this.getCitizenInfo(nick).printEq();
-                break;
-            case ".spec":
-                if(battleId != 0) {
-                    msg = this.getBattleSpects(battleId);
-                } else {
-                    msg = "Podano błedne ID bitwy";
-                }
-                break;
-            case ".news":
-                msg = this.getGlobalMilitaryEvents();
-                break;
-            default:
-                msg = "Nieobsługiwana komenda. Aby sprawdzić dostępne komendy wpisz **.help**";
-                break;
-        }
-        return msg != null ? msg : nick + "? Nie znam typa...";
-    }
+        double finalAmount = amount;
+        int finalWeaponQuality = weaponQuality;
+        String finalServer = server;
+        String finalNick = nick;
 
-    public void signIn() throws IOException {
-        Call<ResponseBody> call = esim.index();
-        call.execute();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), "login="+ APP_SETTINGS.securaLogin +"&password="+ APP_SETTINGS.securaPassword +"&remember=true&facebookAdId=");
-        call = esim.login(body);
-        call.execute();
-        //System.out.println(call.execute().raw().request());
-    }
-
-    public String getBattleSpects(int id) throws IOException {
-        Call<ResponseBody> call = esim.battle(id);
-        String html = call.execute().body().string();
-        return ESimClient.extractSpects(html);
-    }
-
-    public String getGlobalMilitaryEvents() throws IOException {
-        Call<ResponseBody> call = esim.events();
-        String html = call.execute().body().string();
-        return ESimClient.extractNews(Jsoup.parse(html));
-    }
-
-    public ESimCitizen getCitizenInfo(String nick) throws IOException {
+        interceptor.setHost(server);
         Call<ESimCitizen> call = esim.citizenInfo(nick.replaceAll(" ", "-").toLowerCase());
-        ESimCitizen citizen = call.execute().body();
-        //TimeUnit.MILLISECONDS.sleep(200);
-        return citizen;
+        call.enqueue(new Callback<ESimCitizen>() {
+            @Override
+            public void onResponse(Call<ESimCitizen> call, Response<ESimCitizen> response) {
+                String msg = null;
+                switch (cmd) {
+                    case ".licz":
+                        msg = response.body().printLicz(finalAmount, finalWeaponQuality);
+                        break;
+                    case ".link":
+                        msg = response.body().printLink(finalServer);
+                        break;
+                    case ".dmg":
+                        msg = response.body().printDmg();
+                        break;
+                    case ".today":
+                        msg = response.body().printToday();
+                        break;
+                    case ".eq":
+                        msg = response.body().printEq();
+                        break;
+                }
+                channel.sendMessage(msg != null ? msg : finalNick + "? Nie znam typa...").queue();
+            }
+
+            @Override
+            public void onFailure(Call<ESimCitizen> call, Throwable throwable) {
+                channel.sendMessage("Wystąpił błąd serwera.");
+            }
+        });
     }
 
-    static String extractSpects(String html) {
-        Document document = Jsoup.parse(html);
+    private static String extractSpects(Document document) {
         Element div = document.getElementById("spectatorsMenu");
         if(div == null) {
             return "Nie rozpoznano bitwy, lub brak aktywnej opcji premium.";
@@ -178,7 +234,7 @@ public class ESimClient {
         return msg;
     }
 
-    static String extractNews(Document document) {
+    private static String extractNews(Document document) {
         //el.innerHTML = txt;
         Element table = document.getElementsByClass("dataTable paddedTable").first();
 
