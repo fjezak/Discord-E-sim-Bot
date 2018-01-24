@@ -6,7 +6,6 @@ import esim.AppSettings;
 import esim.ESimClient;
 import net.dv8tion.jda.core.AccountType;
 
-import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
 
@@ -17,8 +16,6 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
 import javax.security.auth.login.LoginException;
-
-import java.awt.*;
 import java.io.FileReader;
 import java.io.IOException;
 
@@ -31,8 +28,8 @@ public class Jdabot extends ListenerAdapter {
         Gson gson = new Gson();
         APP_SETTINGS = gson.fromJson(reader, AppSettings.class);
         JDA jda = new JDABuilder(AccountType.BOT).setToken(APP_SETTINGS.botToken).buildBlocking();
-        eSimClient = new ESimClient();
         jda.addEventListener(new Jdabot());
+        eSimClient = new ESimClient(jda.getTextChannelById(371642298611531780L));
     }
 
     @Override
@@ -45,7 +42,6 @@ public class Jdabot extends ListenerAdapter {
                     event.getTextChannel().getName(), event.getMember().getEffectiveName(),
                     event.getMessage().getContent());
 
-
             String message = event.getMessage().getContent();
             String name = event.getMember().getEffectiveName();
             MessageChannel channel = event.getChannel();    //This is the MessageChannel that the message was sent to.
@@ -53,11 +49,6 @@ public class Jdabot extends ListenerAdapter {
             if ( message.charAt(0) == '.' ) {
                 try {
                     eSimClient.processCommands(message, name, channel);
-//                    EmbedBuilder eb = new EmbedBuilder();
-//                    eb.setColor(Color.red);
-//                    eb.setTitle("ESIM BOT ELOELO!!!");
-//                    eb.setDescription(str);
-//                    channel.sendMessage(eb.build()).queue();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
