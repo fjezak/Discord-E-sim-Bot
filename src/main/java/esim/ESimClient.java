@@ -1,5 +1,6 @@
 package esim;
 
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import okhttp3.*;
 import org.jsoup.Jsoup;
@@ -11,7 +12,10 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import java.awt.*;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,6 +27,33 @@ public class ESimClient {
     private static final List<String> SERVERS = Arrays.asList("primera", "secura", "suna", "suburbia");
     private IESim esim;
     private HostSelectionInterceptor interceptor;
+
+    public void MessageSend(String text, MessageChannel channel){
+        EmbedBuilder eb = new EmbedBuilder();
+
+
+        if ( text.charAt(0) == '?' ) {
+
+             eb.setAuthor("GitHub Link\n","https://github.com/fjezak/Discord-E-sim-Bot","https://assets-cdn.github.com/images/modules/logos_page/Octocat.png");
+            eb.setDescription("Aplikacja Discord E-sim Autorstwa Dominika i Filipa\n\n\n");
+            eb.setFooter("","https://cache.fivebelow.com/media/catalog/product/cache/1/image/400x400/17f82f742ffe127f42dca9de82fb58b1/2/8/2888212_smile-face-bt-spkr-ast_ecom1736-5.jpg") ;
+            eb.setColor(Color.pink);
+            eb.setTitle("E-Sim Bot APP\n\n");
+            //eb.setImage("https://www.deppbot.com/assets/icon__deppbot-b10131ff1adceb9ca636e3e1f92fe3502e6063409d0add37c350edbb2899194a.svg");
+          // eb.setThumbnail("https://d30y9cdsu7xlg0.cloudfront.net/png/415507-200.png");
+           eb.setTimestamp(ZonedDateTime.now());
+            channel.sendMessage(eb.build()).queue();
+
+
+        }else {
+            eb.setColor(Color.blue);
+            eb.setTitle("E-Sim Bot APP");
+            eb.setDescription(text);
+            channel.sendMessage(eb.build()).queue();
+        }
+
+    }
+
 
     public ESimClient() throws IOException {
         interceptor = new HostSelectionInterceptor();
@@ -49,17 +80,21 @@ public class ESimClient {
             text = text.replaceFirst(m.group(), "");
             cmd = m.group();
         } else {
-            channel.sendMessage("Coś poszło nie tak.").queue();
+            MessageSend("Coś pos zło nie tak.",channel);
+           // channel.sendMessage("Coś pos zło nie tak.").queue();
             return;
         }
 
         String msg;
         switch(cmd) {
             case ".help":
-                msg = "`Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*`";
+                msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
                 break;
             case ".format":
-                msg = "Dostępne komendy:**\n.licz\t  .link\n.dmg\t.today\n.eq\t   .spec\n** *Uwagi do DR4KA (e-sim)*";
+                msg = "Dostępne formatowania:\n*italics*\t  __*underline italics*__\n**bold**\t\t***bold italics***\n__underline__\t   \t__**underline bold**__\n__***underline bold italics***__\n~~Strikethrough~~\n";
+                break;
+            case ".start":
+                msg = "???";
                 break;
             case ".licz":
             case ".link":
@@ -77,7 +112,8 @@ public class ESimClient {
             default:
                 msg = "Nieobsługiwana komenda. Aby sprawdzić dostępne komendy wpisz **.help**";
         }
-        channel.sendMessage(msg).queue();
+        MessageSend(msg,channel);
+        //channel.sendMessage(msg).queue();
     }
 
     private void signIn() throws IOException {
@@ -96,7 +132,8 @@ public class ESimClient {
             battleId = Integer.parseInt(m.group());
         }
         if (battleId == 0) {
-            channel.sendMessage("Podano błedne ID bitwy.").queue();
+            MessageSend("**Podano błedne ID bitwy.**",channel);
+          //  channel.sendMessage("Podano błedne ID bitwy.").queue();
             return;
         }
         interceptor.setHost("secura");
@@ -105,7 +142,8 @@ public class ESimClient {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
-                    channel.sendMessage(ESimClient.extractSpects(Jsoup.parse(response.body().string()))).queue();
+                    MessageSend(ESimClient.extractSpects(Jsoup.parse(response.body().string())),channel);
+                   // channel.sendMessage(ESimClient.extractSpects(Jsoup.parse(response.body().string()))).queue();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -113,7 +151,9 @@ public class ESimClient {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable throwable) {
-                channel.sendMessage("Wystąpił błąd serwera.").queue();
+              //  channel.sendMessage("Wystąpił błąd serwera.").queue();
+                MessageSend("**Wystąpił błąd serwera.**",channel);
+
             }
         });
     }
@@ -125,7 +165,9 @@ public class ESimClient {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
-                    channel.sendMessage(ESimClient.extractNews(Jsoup.parse(response.body().string()))).queue();
+                   // channel.sendMessage(ESimClient.extractNews(Jsoup.parse(response.body().string()))).queue();
+                    MessageSend(ESimClient.extractNews(Jsoup.parse(response.body().string())),channel);
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -133,7 +175,8 @@ public class ESimClient {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable throwable) {
-                channel.sendMessage("Wystąpił błąd serwera.").queue();
+               // channel.sendMessage("Wystąpił błąd serwera.").queue();
+                MessageSend("**Wystąpił błąd serwera.**",channel);
             }
         });
     }
@@ -212,12 +255,16 @@ public class ESimClient {
                         msg = response.body().printEq();
                         break;
                 }
-                channel.sendMessage(msg != null ? msg : finalNick + "? Nie znam typa...").queue();
+              //  channel.sendMessage(msg != null ? msg : finalNick + "? Nie znam typa...").queue();
+                MessageSend(msg != null ? msg : "~~" + finalNick + "~~" + "? Nie znam typa...",channel);
+
             }
 
             @Override
             public void onFailure(Call<ESimCitizen> call, Throwable throwable) {
-                channel.sendMessage("Wystąpił błąd serwera.");
+                //channel.sendMessage("Wystąpił błąd serwera.");
+                MessageSend("Wystąpił błąd serwera.",channel);
+
             }
         });
     }
@@ -225,7 +272,7 @@ public class ESimClient {
     private static String extractSpects(Document document) {
         Element div = document.getElementById("spectatorsMenu");
         if(div == null) {
-            return "Nie rozpoznano bitwy, lub brak aktywnej opcji premium.";
+            return "**Nie rozpoznano bitwy, lub brak aktywnej opcji premium.**";
         }
         String spects = div.text().replaceAll("<.*?>", "").trim().replaceAll("\\s+(?=\\d+)", ", ").replaceAll("\\s{2,}", " ");
         String fightName = document.getElementById("fightName").getElementsByTag("span").first().getElementsByTag("a").first().text();
